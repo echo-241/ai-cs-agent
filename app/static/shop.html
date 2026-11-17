@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>觅淘 · 智能商城</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+  :root {
+    --bg: #f4f6fa; --panel: #fff; --line: #e8edf4; --ink: #111827;
+    --muted: #6b7280; --brand: #2563eb; --brand-dark: #1d4ed8; --soft: #eff4ff;
+    --price: #e4393c; --ok: #059669; --bad: #dc2626; --shadow: 0 6px 22px rgba(15,23,42,.07);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+         background: var(--bg); color: var(--ink); }
+  a { color: inherit; text-decoration: none; }
+  button, input, textarea { font: inherit; }
+  button { cursor: pointer; border-radius: 9px; border: 1px solid var(--line);
+           background: #fff; padding: 8px 13px; font-size: 13px; transition: .18s; }
+  button:hover { border-color: #bcd0ff; background: var(--soft); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.primary { background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff;
+                   border-color: transparent; font-weight: 600; box-shadow: 0 4px 12px rgba(37,99,235,.25); }
+  button.primary:hover { background: linear-gradient(135deg, #1d4ed8, #2563eb); }
+  input, textarea { border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; outline: none; }
+  input:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+
+  /* 顶部导航 */
+  .topbar { background: linear-gradient(100deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+            color: #fff; padding: 13px 32px; display: flex; align-items: center; gap: 26px;
+            position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 14px rgba(15,23,42,.18); }
+  .logo { font-size: 21px; font-weight: 800; letter-spacing: .06em; white-space: nowrap; }
+  .logo small { display: block; font-size: 9px; font-weight: 500; letter-spacing: .28em; opacity: .72; }
+  .search { flex: 1; max-width: 460px; position: relative; }
+  .search input { width: 100%; background: rgba(255,255,255,.95); border: none; padding-left: 34px; }
+  .search::before { content: "⌕"; position: absolute; left: 12px; top: 5px; font-size: 19px; color: #94a3b8; }
+  .nav { margin-left: auto; display: flex; align-items: center; gap: 20px; font-size: 13px; }
+  .nav a { opacity: .88; }
+  .nav a:hover { opacity: 1; }
+  .cart { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28);
+          border-radius: 999px; padding: 6px 13px; font-size: 12px; }
+
+  main { max-width: 1240px; margin: 0 auto; padding: 22px 24px 48px; }
+  /* Banner */
+  .banner { border-radius: 18px; overflow: hidden; background: linear-gradient(115deg, #2563eb, #6d5cf6 62%, #9333ea);
+            color: #fff; padding: 30px 36px; display: flex; align-items: center; justify-content: space-between;
+            position: relative; box-shadow: var(--shadow); }
+  .banner::after { content: ""; position: absolute; width: 260px; height: 260px; border-radius: 50%;
+                   right: 190px; top: -120px; background: rgba(255,255,255,.09); }
+  .banner h1 { font-size: 27px; margin: 0 0 9px; letter-spacing: .02em; }
+  .banner p { margin: 0; font-size: 13px; opacity: .9; line-height: 1.8; }
+  .banner .pills { margin-top: 16px; display: flex; gap: 8px; }
+  .banner .pills span { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.24);
+                        border-radius: 999px; padding: 5px 12px; font-size: 11px; }
+  .banner-pic { width: 200px; height: 150px; border-radius: 14px; background: #fff;
+                display: flex; align-items: center; justify-content: center; overflow: hidden;
+                transform: rotate(-4deg); box-shadow: 0 12px 30px rgba(15,23,42,.25); z-index: 1; }
+  .banner-pic img { width: 100%; height: 100%; object-fit: contain; }
+
+  .addr-bar { margin: 16px 0 18px; background: var(--panel); border: 1px solid var(--line);
+              border-radius: 12px; padding: 11px 16px; display: flex; gap: 14px; align-items: center;
+              flex-wrap: wrap; box-shadow: var(--shadow); font-size: 13px; }
+  .addr-bar label { font-weight: 600; white-space: nowrap; }
+  .addr-bar input { flex: 1; min-width: 240px; font-size: 13px; }
+  .addr-bar .sub { color: var(--muted); font-size: 12px; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(330px, 1fr);
+            gap: 18px; align-items: start; }
+  @media (max-width: 1020px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+           box-shadow: var(--shadow); }
+  .sec-head { display: flex; align-items: center; justify-content: space-between;
+              padding: 16px 18px 12px; }
+  .sec-head h2 { font-size: 16px; margin: 0; }
+  .sec-head .sub { font-size: 12px; color: var(--muted); }
+
+  /* 商品卡片 */
+  .goods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+           gap: 14px; padding: 0 18px 18px; }
+  @media (max-width: 620px) { .goods { grid-template-columns: 1fr; } }
+  .card { border: 1px solid var(--line); border-radius: 13px; overflow: hidden; background: #fff;
+          display: flex; flex-direction: column; transition: .2s; }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(15,23,42,.11); border-color: #cbd9ff; }
+  .pic { height: 190px; background: #fff; position: relative; display: flex;
+         align-items: center; justify-content: center; border-bottom: 1px solid #f1f4f9; }
+  .pic img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
+  .pic .tag { position: absolute; left: 10px; top: 10px; background: linear-gradient(135deg,#2563eb,#60a5fa);
+              color: #fff; font-size: 10px; padding: 4px 9px; border-radius: 999px; letter-spacing: .04em; }
+  .pic .stock { position: absolute; right: 10px; bottom: 10px; background: rgba(15,23,42,.06);
+                color: var(--muted); font-size: 10px; padding: 3px 8px; border-radius: 999px; }
+  .info { padding: 13px 14px 15px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+  .sku { color: var(--brand); font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+  .name { font-size: 14px; font-weight: 600; line-height: 1.45; }
+  .desc { font-size: 11px; color: var(--muted); line-height: 1.6; min-height: 34px; }
+  .price { font-size: 22px; font-weight: 800; color: var(--price); }
+  .price small { font-size: 12px; font-weight: 500; }
+  .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+  .actions input { width: 58px; font-size: 13px; padding: 7px 8px; }
+  .actions button.primary { flex: 1; }
+  .actions button.ghost { padding: 8px 10px; font-size: 12px; }
+
+  /* 聊天面板 */
+  .chat { display: flex; flex-direction: column; height: 620px; position: sticky; top: 82px; overflow: hidden; }
+  .chat-head { padding: 14px 16px; background: linear-gradient(100deg,#f8fbff,#eff4ff);
+               border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#2563eb,#7c3aed);
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 15px; flex: none; }
+  .chat-head b { font-size: 14px; display: block; }
+  .chat-head span { font-size: 11px; color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block; margin-right: 4px; }
+  .chat-body { flex: 1; overflow-y: auto; padding: 16px; background: #f8fafc;
+               display: flex; flex-direction: column; gap: 12px; }
+  .bubble-row { display: flex; gap: 8px; align-items: flex-start; }
+  .bubble-row.user { flex-direction: row-reverse; }
+  .bubble { max-width: 84%; padding: 10px 13px; border-radius: 13px; font-size: 13px;
+            line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+  .bubble-row.assistant .bubble { background: #fff; border: 1px solid var(--line); border-top-left-radius: 3px; }
+  .bubble-row.user .bubble { background: linear-gradient(135deg,#2563eb,#3b82f6); color: #fff;
+                             border-top-right-radius: 3px; }
+  .mini-avatar { width: 26px; height: 26px; border-radius: 50%; background: #dbe7ff; color: var(--brand);
+                 display: flex; align-items: center; justify-content: center; font-size: 12px;
+                 font-weight: 700; flex: none; }
+  .toolcard { margin-top: 9px; border: 1px solid #dbe7ff; background: #f5f9ff;
+              border-radius: 9px; padding: 9px 10px; font-size: 11px; line-height: 1.6; }
+  .toolcard .t { color: var(--brand); font-weight: 700; }
+  .toolcard .t.fail { color: var(--bad); }
+  .toolcard code { display: block; color: var(--muted); background: #fff; border-radius: 5px;
+                   padding: 5px 7px; margin: 5px 0; word-break: break-all; }
+  .welcome { text-align: center; color: var(--muted); font-size: 12px; line-height: 1.9; margin: auto 0; }
+  .welcome b { display: block; color: var(--ink); font-size: 14px; margin-bottom: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px 0; background: #f8fafc; }
+  .chips button { font-size: 11px; padding: 5px 9px; border-radius: 999px; background: #fff; }
+  .typing { font-size: 12px; color: var(--muted); padding-left: 4px; }
+  .composer { border-top: 1px solid var(--line); padding: 11px 14px; display: flex;
+              gap: 9px; align-items: flex-end; background: #fff; }
+  .composer textarea { flex: 1; resize: none; height: 54px; font-size: 13px; line-height: 1.5; }
+
+  /* 订单 */
+  .orders { margin-top: 18px; padding: 0 18px 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 10px; }
+  .badge.status { background: #fff7ed; color: #c2410c; }
+  .badge.user { background: #eff4ff; color: var(--brand); }
+  .badge.agent { background: #f5f3ff; color: #7c3aed; }
+  .empty { color: var(--muted); font-size: 13px; padding: 16px 0; }
+  .notice { margin-top: 14px; padding: 11px 15px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+  .notice.good { background: #ecfdf5; color: var(--ok); }
+  .notice.bad { background: #fef2f2; color: var(--bad); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="logo">觅淘<small>MITAO MALL</small></div>
+    <div class="search">
+      <input v-model="search" placeholder="搜索型号 / 商品名称，例如 XR-200S" />
+    </div>
+    <div class="nav">
+      <a href="#goods">全部商品</a>
+      <a href="#orders">我的订单</a>
+      <a href="/">售后客服</a>
+      <span class="cart">订单 {{ orders.length }}</span>
+    </div>
+  </div>
+
+  <main>
+    <section class="banner">
+      <div>
+        <h1>星域智能 · 智能家居专场</h1>
+        <p>4 款在售机型，参数来自官方规格手册。<br />右边和觅淘 AI 导购聊几句，选好了直接在对话里下单。</p>
+        <div class="pills">
+          <span>正品保障</span><span>AI 导购在线</span><span>对话即可下单</span>
+        </div>
+      </div>
+      <div class="banner-pic"><img src="/static/images/xr500max.png" alt="旗舰扫地机器人" /></div>
+    </section>
+
+    <div class="addr-bar">
+      <label for="addr">默认收货地址</label>
+      <input id="addr" v-model="address" placeholder="省市区 + 详细地址（聊天里也可直接说寄到哪）" />
+      <span class="sub">会话 {{ sessionId }}</span>
+      <button @click="refresh">刷新</button>
+    </div>
+
+    <div class="layout">
+      <!-- 商品 -->
+      <section class="panel" id="goods">
+        <div class="sec-head">
+          <h2>今日精选 <span class="sub">· {{ filtered.length }} 件商品</span></h2>
+          <span class="sub">点击「问助手」把它带进对话</span>
+        </div>
+        <div class="goods">
+          <div class="card" v-for="p in filtered" :key="p.sku">
+            <div class="pic">
+              <span class="tag">{{ p.tag || '在售' }}</span>
+              <img :src="p.image || fallbackImage" :alt="p.item" @error="p.image = fallbackImage" />
+              <span class="stock">库存 {{ p.stock }} 件</span>
+            </div>
+            <div class="info">
+              <div class="sku">{{ p.sku }}</div>
+              <div class="name">{{ p.item }}</div>
+              <div class="desc">{{ p.desc }}</div>
+              <div class="price">¥{{ p.price }}</div>
+              <div class="actions">
+                <input type="number" min="1" max="10" v-model.number="qty[p.sku]" />
+                <button class="primary" :disabled="busy || p.stock < 1" @click="buy(p)">立即购买</button>
+                <button class="ghost" @click="askAbout(p)">问助手</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="!filtered.length" class="empty" style="padding:0 18px 18px">没有匹配的商品，换个关键词试试。</div>
+      </section>
+
+      <!-- AI 导购对话 -->
+      <aside class="panel chat">
+        <div class="chat-head">
+          <div class="avatar">觅</div>
+          <div>
+            <b>觅淘 AI 导购</b>
+            <span><i class="dot"></i>在线 · 支持多轮对话 / 对话内下单</span>
+          </div>
+        </div>
+
+        <div class="chat-body" ref="chatBox">
+          <div v-if="!messages.length" class="welcome">
+            <b>你好，我是觅淘导购</b>
+            可以问我「预算 2000 买哪款」「XR-200S 和 XR-300 Plus 有什么区别」，<br />
+            聊好了直接说「帮我买一台」，我会在对话里替你下单。
+          </div>
+          <div v-for="(m, i) in messages" :key="i" class="bubble-row" :class="m.role">
+            <div class="mini-avatar" v-if="m.role !== 'user'">觅</div>
+            <div class="bubble">
+              {{ m.content }}
+              <div v-if="m.tool" class="toolcard">
+                <div class="t" :class="{fail: !m.tool.ok}">
+                  工具 {{ m.tool.name }} · {{ m.tool.ok ? '执行成功' : '校验未通过' }}
+                </div>
+                <code>{{ JSON.stringify(m.tool.args) }}</code>
+                <div>{{ m.tool.message }}</div>
+              </div>
+            </div>
+          </div>
+          <div v-if="sending" class="bubble-row assistant">
+            <div class="mini-avatar">觅</div>
+            <div class="bubble typing">正在思考…</div>
+          </div>
+        </div>
+
+        <div class="chips">
+          <button v-for="q in quickAsks" :key="q" @click="chatInput = q">{{ q }}</button>
+        </div>
+        <div class="composer">
+          <textarea v-model="chatInput" placeholder="和导购聊点什么… Enter 发送，Shift+Enter 换行"
+                    @keydown.enter.exact.prevent="sendChat"></textarea>
+          <button class="primary" :disabled="sending || !chatInput.trim()" @click="sendChat">发送</button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- 订单 -->
+    <section class="panel orders" id="orders">
+      <div class="sec-head" style="padding-left:0">
+        <h2>我的订单 <span class="sub">· {{ orders.length }} 笔</span></h2>
+        <button @click="refresh">刷新</button>
+      </div>
+      <table v-if="orders.length">
+        <thead>
+          <tr><th>订单号</th><th>商品</th><th>数量</th><th>金额</th><th>状态</th><th>来源</th><th>时间</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="o in orders" :key="o.order_id">
+            <td>{{ o.order_id }}</td>
+            <td>{{ o.item }}</td>
+            <td>{{ o.quantity }}</td>
+            <td style="color:var(--price);font-weight:700">¥{{ o.amount }}</td>
+            <td><span class="badge status">{{ o.status }}</span></td>
+            <td><span class="badge" :class="o.source === 'user' ? 'user' : 'agent'">
+              {{ o.source === 'user' ? '人工购买' : '助手代买' }}</span></td>
+            <td>{{ o.created_at }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-else class="empty">还没有订单。可以点「立即购买」，或在右边和导购聊一句「帮我买一台 XR-200S」。</div>
+    </section>
+
+    <div v-if="notice" class="notice" :class="ok ? 'good' : 'bad'">{{ notice }}</div>
+  </main>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+createApp({
+  setup() {
+    const products = ref([]);
+    const orders = ref([]);
+    const messages = ref([]);
+    const qty = ref({});
+    const address = ref('上海市浦东新区世纪大道 1 号');
+    const chatInput = ref('');
+    const search = ref('');
+    const sending = ref(false);
+    const busy = ref(false);
+    const notice = ref('');
+    const ok = ref(true);
+    const sessionId = ref('');
+    const chatBox = ref(null);
+    // 前端兜底：老版本后端只返回 sku/item/price/stock，也能显示商品图与卖点
+    const LOCAL_META = {
+      'XR-200S': { image: '/static/images/xr200s.png', tag: '入门热销',
+                   desc: '1800Pa 吸力 / 2600mAh 电池 / 90 分钟续航，小户型够用' },
+      'XR-300 Plus': { image: '/static/images/xr300plus.png', tag: '大容量',
+                       desc: '5200mAh 电池 / 0.55L 尘盒 / 五爪边刷，大户型更省心' },
+      'XR-500 Max': { image: '/static/images/xr500max.png', tag: '旗舰新品',
+                      desc: '4200Pa 吸力 / 6400mAh 电池 / 自动集尘基站，免手动倒尘' },
+      'XG-100 Pro': { image: '/static/images/xg100pro.png', tag: '净化优选',
+                      desc: 'CADR 300m³/h / 适用 30-50㎡ / 专用滤芯 XG-F100P' },
+    };
+    const fallbackImage = '/static/images/xr200s.png';
+    const quickAsks = ref([
+      '你好', '预算 2000 买哪款？', 'XR-200S 和 XR-300 Plus 有什么区别？',
+      '帮我买一台 XR-200S', '查一下我最近的订单',
+    ]);
+
+    const filtered = computed(() => {
+      const q = search.value.trim().toLowerCase();
+      if (!q) return products.value;
+      return products.value.filter(p =>
+        (p.sku + ' ' + p.item + ' ' + (p.desc || '')).toLowerCase().includes(q));
+    });
+
+    const api = (path, opt) => fetch(path, opt).then(async (r) => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || data.message || '请求失败');
+      return data;
+    });
+    const post = (path, body) => api(path, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    async function scrollDown() {
+      await nextTick();
+      if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight;
+    }
+
+    async function refresh() {
+      try {
+        const [ps, os] = await Promise.all([
+          api('/api/shop/products'),
+          api('/api/shop/orders?session_id=' + encodeURIComponent(sessionId.value)),
+        ]);
+        products.value = (ps.items || []).map(p => {
+          const meta = LOCAL_META[p.sku] || {};
+          return {
+            ...p,
+            image: p.image || meta.image || fallbackImage,
+            tag: p.tag || meta.tag || '在售',
+            desc: p.desc || meta.desc || '',
+          };
+        });
+        orders.value = os.items || [];
+        for (const p of products.value) if (!qty.value[p.sku]) qty.value[p.sku] = 1;
+      } catch (e) {
+        notice.value = '数据加载失败：' + e.message;
+        ok.value = false;
+      }
+    }
+
+    async function buy(p) {
+      busy.value = true;
+      notice.value = '';
+      try {
+        const d = await post('/api/shop/orders', {
+          session_id: sessionId.value, sku: p.sku,
+          quantity: qty.value[p.sku] || 1, address: address.value,
+        });
+        notice.value = d.message;
+        ok.value = true;
+        await refresh();
+      } catch (e) {
+        notice.value = e.message;
+        ok.value = false;
+      } finally {
+        busy.value = false;
+      }
+    }
+
+    function askAbout(p) {
+      chatInput.value = '帮我介绍一下 ' + p.sku + '，适合我吗？';
+    }
+
+    async function sendChat() {
+      const text = chatInput.value.trim();
+      if (!text || sending.value) return;
+      chatInput.value = '';
+      messages.value.push({ role: 'user', content: text });
+      sending.value = true;
+      await scrollDown();
+      try {
+        const d = await post('/api/shop/chat', {
+          session_id: sessionId.value, message: text, address: address.value,
+        });
+        messages.value.push({ role: 'assistant', content: d.reply, tool: d.tool });
+        if (d.tool && d.tool.name === 'create_order' && d.tool.ok) {
+          notice.value = d.tool.message;
+          ok.value = true;
+          await refresh();
+        } else if (!d.ok) {
+          notice.value = d.reply;
+          ok.value = false;
+        }
+      } catch (e) {
+        messages.value.push({ role: 'assistant', content: '出错了：' + e.message });
+      } finally {
+        sending.value = false;
+        await scrollDown();
+      }
+    }
+
+    onMounted(async () => {
+      let sid = localStorage.getItem('mitao_session_id');
+      if (!sid) {
+        sid = 'shop-' + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem('mitao_session_id', sid);
+      }
+      sessionId.value = sid;
+      await refresh();
+      try {
+        const h = await api('/api/shop/chat/history?session_id=' + encodeURIComponent(sid));
+        messages.value = (h.items || []).map(m => ({
+          role: m.role === 'user' ? 'user' : 'assistant', content: m.content,
+        }));
+        await scrollDown();
+      } catch (e) { /* 历史拉取失败不阻断页面 */ }
+    });
+
+    return { products, filtered, orders, messages, qty, address, chatInput, search,
+             sending, busy, notice, ok, sessionId, chatBox, quickAsks, fallbackImage,
+             refresh, buy, askAbout, sendChat };
+  },
+}).mount('#app');
+</script>
+</body>
+</html>

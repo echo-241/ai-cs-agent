@@ -1,0 +1,27 @@
+# 环境与密钥
+.env
+.venv/
+__pycache__/
+*.pyc
+.idea/
+.pytest_cache/
+
+# 运行时产物
+data/db/
+data/uploads/
+data/bm25/
+data/docs/
+
+# 评测原始输出（体积大，按需保留）
+eval/results.json
+eval/e2e_results.json
+
+# 编辑器 / 评测缓存 / 系统杂项
+.jbeval/
+*.log
+.DS_Store
+Thumbs.db
+
+# 个人求职 / 答辩备考材料：本地保留，不入库
+# （面试标准答案、简历话术、答辩脚本，公开仓库不宜公开）
+DELIVERY_*.md
